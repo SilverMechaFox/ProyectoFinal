@@ -1,0 +1,828 @@
+*Menu*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class MainMenuFunction : MonoBehaviour
+{
+
+    public GameObject fadeOut;
+    public GameObject loadText;
+    public AudioSource buttonClick;
+
+    public void NewGameButton()
+    {
+        StartCoroutine(NewGameStart());
+    }
+   
+   
+    IEnumerator NewGameStart()
+    {
+        fadeOut.SetActive(true);
+        buttonClick.Play();
+        yield return new WaitForSeconds(3);
+        loadText.SetActive(true);
+        SceneManager.LoadScene(1);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
+        
+    }
+}
+-----------------------------------------------------------------------
+*Recoger arma*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PickUpPistol : MonoBehaviour
+{
+
+	public float TheDistance;
+	public GameObject ActionDisplay;
+	public GameObject ActionText;
+	public GameObject FakePistol;
+	public GameObject RealPistol;
+	public GameObject GuideArrow;
+	public GameObject ExtraCross;
+	public GameObject TheJumpTrigger;
+
+
+	void Update()
+	{
+		TheDistance = PlayerCasting.DistanceFromTarget;
+	}
+
+	void OnMouseOver()
+	{
+		if (TheDistance <= 2)
+		{
+			ExtraCross.SetActive(true);
+			ActionText.GetComponent<Text>().text = "Recoger Arma";
+			ActionDisplay.SetActive(true);
+			ActionText.SetActive(true);
+		}
+		if (Input.GetButtonDown("Action"))
+		{
+			if (TheDistance <= 2)
+			{
+				this.GetComponent<BoxCollider>().enabled = false;
+				ActionDisplay.SetActive(false);
+				ActionText.SetActive(false);
+				FakePistol.SetActive(false);
+				RealPistol.SetActive(true);
+				ExtraCross.SetActive(false);
+				GuideArrow.SetActive(false);
+				TheJumpTrigger.SetActive(true);
+			}
+		}
+	}
+
+	void OnMouseExit()
+	{
+		ExtraCross.SetActive(false);
+		ActionDisplay.SetActive(false);
+		ActionText.SetActive(false);
+	}
+}
+---------------------------------------------------------------------------------
+*Distancia Jugador*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+
+public class PlayerCasting : MonoBehaviour
+{
+
+	public static float DistanceFromTarget;
+	public float ToTarget;
+
+
+	void Update()
+	{
+		RaycastHit Hit;
+		if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out Hit))
+		{
+			ToTarget = Hit.distance;
+			DistanceFromTarget = ToTarget;
+		}
+	}
+}
+
+--------------------------------------------------------------------------------
+*Puerta cerrada*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
+public class LockedDoor : MonoBehaviour
+{
+
+	public float TheDistance;
+	public GameObject ActionDisplay;
+	public GameObject ActionText;
+	public GameObject ExtraCross;
+	public AudioSource LockDoor;
+	public GameObject firstKeyDoor;
+	public AudioSource CreakSound;
+	public GameObject fadeOut;
+
+	void Update()
+	{
+		TheDistance = PlayerCasting.DistanceFromTarget;
+	}
+
+	void OnMouseOver()
+	{
+		if (TheDistance <= 2)
+		{
+			ExtraCross.SetActive(true);
+			ActionText.GetComponent<Text>().text = "Abrir Puerta";
+			ActionDisplay.SetActive(true);
+			ActionText.SetActive(true);
+		}
+		if (Input.GetButtonDown("Action"))
+		{
+			if (TheDistance <= 2)
+			{
+				this.GetComponent<BoxCollider>().enabled = false;
+				ActionDisplay.SetActive(false);
+				ActionText.SetActive(false);
+				ExtraCross.SetActive(false);
+				StartCoroutine(DoorReset());
+
+			}
+		}
+	}
+
+	void OnMouseExit()
+	{
+		ExtraCross.SetActive(false);
+		ActionDisplay.SetActive(false);
+		ActionText.SetActive(false);
+	}
+
+	IEnumerator DoorReset() 
+	{
+		if (GlobalInventory.firstDoorKey == false)
+		{
+			LockDoor.Play();
+			yield return new WaitForSeconds(1);
+			this.GetComponent<BoxCollider>().enabled = true;
+		}
+        else
+        {
+			CreakSound.Play();
+			fadeOut.SetActive(true);
+			yield return new WaitForSeconds(3);
+			SceneManager.LoadScene(6);
+		}
+	}
+		
+}
+
+--------------------------------------------------------------------------------
+*ZombieAI*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ZombieAI : MonoBehaviour
+{
+
+    public GameObject thePlayer;
+    public GameObject TheEnemy;
+    public float enemySpeed = 0.01f;
+    public bool attackTrigger = false;
+    public bool isAttacking = false;
+    public AudioSource HurtSound01;
+    public AudioSource HurtSound02;
+    public AudioSource HurtSound03;
+    public int HurtGen;
+    public GameObject TheFlash;
+
+    void Update()
+    {
+        transform.LookAt(thePlayer.transform);
+        if (attackTrigger == false)
+        {
+            enemySpeed = 0.01f;
+            TheEnemy.GetComponent<Animation>().Play("Z_Walk_InPlace 1");
+            transform.position = Vector3.MoveTowards(transform.position, thePlayer.transform.position, enemySpeed);
+        }
+        if (attackTrigger == true && isAttacking == false)
+        {
+            enemySpeed = 0;
+            TheEnemy.GetComponent<Animation>().Play("Z_Attack 1");
+            StartCoroutine(InflictDamage());
+        }
+
+    }
+
+    void OnTriggerEnter()
+    {
+        attackTrigger = true;
+    }
+
+    void OnTriggerExit()
+    {
+        attackTrigger = false;
+    }
+
+
+
+
+
+    IEnumerator InflictDamage()
+    {
+        isAttacking = true;
+        HurtGen = Random.Range(1, 4);
+        if (HurtGen == 1)
+        {
+            HurtSound01.Play();
+        }
+        if (HurtGen == 2)
+        {
+            HurtSound02.Play();
+        }
+        if (HurtGen == 3)
+        {
+            HurtSound03.Play();
+        }
+        TheFlash.SetActive(true);
+        yield return new WaitForSeconds(0.1f);
+        TheFlash.SetActive(false);
+        yield return new WaitForSeconds(1.1f);
+
+        GlobalHealth.currentHealth -= 5;
+        
+        yield return new WaitForSeconds(0.9f);
+        isAttacking = false;
+    }
+
+}
+
+
+-----------------------------------------------------------------------------------
+*Muerte de Zombie*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ZombieDeath : MonoBehaviour
+{
+
+    public int EnemyHealth = 10;
+    public GameObject TheEnemy;
+    public int StatusCheck;
+    public AudioSource JumpScareMusic;
+    public AudioSource ambMusic;
+
+    void DamageZombie(int DamageAmount)
+    {
+        EnemyHealth -= DamageAmount;
+    }
+
+
+
+
+    void Update()
+    {
+        if (EnemyHealth <= 0 && StatusCheck == 0)
+        {
+            this.GetComponent<ZombieAI>().enabled = false;
+            this.GetComponent<BoxCollider>().enabled = false;
+            StatusCheck = 2;
+            TheEnemy.GetComponent<Animation>().Stop("Z_Walk_InPlace 1");
+            TheEnemy.GetComponent<Animation>().Play("Z_FallingBack 1");
+            JumpScareMusic.Stop();
+            ambMusic.Play();
+        }
+    }
+}
+
+-----------------------------------------------------------------------------------
+*Recoger llave*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class KeyPickUp : MonoBehaviour
+{
+
+	public float TheDistance;
+	public GameObject ActionDisplay;
+	public GameObject ActionText;
+	public GameObject ExtraCross;
+	public GameObject TheKey;
+
+
+
+	void Update()
+	{
+		TheDistance = PlayerCasting.DistanceFromTarget;
+	}
+
+	void OnMouseOver()
+	{
+		if (TheDistance <= 2)
+		{
+			ExtraCross.SetActive(true);
+			ActionText.GetComponent<Text>().text = "Recoger Llave";
+			ActionDisplay.SetActive(true);
+			ActionText.SetActive(true);
+		}
+		if (Input.GetButtonDown("Action"))
+		{
+			if (TheDistance <= 2)
+			{
+				this.GetComponent<BoxCollider>().enabled = false;
+				ActionDisplay.SetActive(false);
+				ActionText.SetActive(false);
+				ExtraCross.SetActive(false);
+				TheKey.SetActive(false);
+				GlobalInventory.firstDoorKey = true;
+			}
+		}
+	}
+
+	void OnMouseExit()
+	{
+		ExtraCross.SetActive(false);
+		ActionDisplay.SetActive(false);
+		ActionText.SetActive(false);
+	}
+
+		
+}
+
+-----------------------------------------------------------------------------------
+
+*Inventorio Global*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GlobalInventory : MonoBehaviour
+{
+    public static bool firstDoorKey = false;
+    public bool internalDoorKey;
+    public static bool leftEye = false;
+
+    void Update()
+    {
+        internalDoorKey = firstDoorKey;
+    }
+}
+
+-----------------------------------------------------------------------------------
+
+*Salud Global*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class GlobalHealth : MonoBehaviour
+{
+
+    public static int currentHealth = 20;
+    public int internalHealth;
+
+    void Update()
+    {
+        internalHealth = currentHealth;
+        if (currentHealth <= 0)
+        {
+            SceneManager.LoadScene(2);
+        }
+    }
+}
+
+----------------------------------------------------------------------------------
+
+*Municion Global*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GlobalAmmo : MonoBehaviour
+{
+    public static int ammoCount;
+    public GameObject ammoDisplay;
+    public int internalAmmo;
+
+
+    void Update()
+    {
+        internalAmmo = ammoCount;
+        ammoDisplay.GetComponent<Text>().text = "" + ammoCount;
+    }
+}
+
+--------------------------------------------------------------------------------
+
+*Llama*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Flame : MonoBehaviour
+{
+
+	public int LightMode;
+	public GameObject FlameLight;
+
+
+	void Update()
+	{
+		if (LightMode == 0)
+		{
+			StartCoroutine(AnimateLight());
+		}
+
+	}
+
+	IEnumerator AnimateLight()
+	{
+		LightMode = Random.Range(1, 4);
+		if (LightMode == 1)
+		{
+			FlameLight.GetComponent<Animation>().Play("TorchAnim1");
+		}
+		if (LightMode == 2)
+		{
+			FlameLight.GetComponent<Animation>().Play("TorchAnim2");
+		}
+		if (LightMode == 3)
+		{
+			FlameLight.GetComponent<Animation>().Play("TorchAnim3");
+		}
+		yield return new WaitForSeconds(0.99f);
+		LightMode = 0;
+
+	}
+}
+
+-------------------------------------------------------------------------------
+
+*Disparar Arma*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class FirePistol : MonoBehaviour
+{
+
+    public GameObject TheGun;
+    public GameObject MuzzleFlash;
+    public AudioSource GunFire;
+    public bool IsFiring = false;
+    public float TargetDistance;
+    public int DamageAmount = 5;
+
+
+    void Update()
+    {
+        if (Input.GetButtonDown("Fire1") && GlobalAmmo.ammoCount >=1)
+        {
+            if (IsFiring == false)
+            {
+                GlobalAmmo.ammoCount -= 1;
+                StartCoroutine(FiringPistol());
+            }
+        }
+
+    }
+
+    IEnumerator FiringPistol()
+    {
+        RaycastHit Shot;
+        IsFiring = true;
+        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out Shot))
+        {
+            TargetDistance = Shot.distance;
+            Shot.transform.SendMessage("DamageZombie", DamageAmount, SendMessageOptions.DontRequireReceiver);
+        }
+        TheGun.GetComponent<Animation>().Play("PistolShot");
+        MuzzleFlash.SetActive(true);
+        MuzzleFlash.GetComponent<Animation>().Play("MuzzleAnim");
+        GunFire.Play();
+        yield return new WaitForSeconds(0.5f);
+        IsFiring = false;
+        MuzzleFlash.SetActive(false);
+    }
+}
+
+--------------------------------------------------------------------------------
+
+*Abrir Puerta*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using UnityEngine.UI;
+
+public class DoorCellOpen : MonoBehaviour
+{
+
+	public float TheDistance;
+	public GameObject ActionDisplay;
+	public GameObject ActionText;
+	public GameObject TheDoor;
+	public AudioSource CreakSound;
+	public GameObject ExtraCross;
+
+	void Update()
+	{
+		TheDistance = PlayerCasting.DistanceFromTarget;
+	}
+
+	void OnMouseOver()
+	{
+		if (TheDistance <= 2)
+		{
+			ExtraCross.SetActive(true);
+			ActionDisplay.SetActive(true);
+			ActionText.SetActive(true);
+		}
+		if (Input.GetButtonDown("Action"))
+		{
+			if (TheDistance <= 2)
+			{
+				this.GetComponent<BoxCollider>().enabled = false;
+				ActionDisplay.SetActive(false);
+				ActionText.SetActive(false);
+				TheDoor.GetComponent<Animation>().Play("Door1Open");
+				CreakSound.Play();
+			}
+		}
+	}
+
+	void OnMouseExit()
+	{
+		ExtraCross.SetActive(false);
+		ActionDisplay.SetActive(false);
+		ActionText.SetActive(false);
+	}
+}
+
+------------------------------------------------------------------------------
+
+*Recoger Municion*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class AmmoPickup : MonoBehaviour
+{
+
+    public GameObject theAmmo;
+    public GameObject ammoDisplayBox;
+
+    void OnTriggerEnter(Collider other)
+    {
+        ammoDisplayBox.SetActive(true);
+        GlobalAmmo.ammoCount += 7;
+        theAmmo.SetActive(false);
+    }
+
+}
+
+---------------------------------------------------------------------------------
+
+*Escena 01*
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityStandardAssets.Characters.FirstPerson;
+using UnityEngine.UI;
+
+public class AOpening : MonoBehaviour
+{
+
+	public GameObject ThePlayer;
+	public GameObject FadeScreenIn;
+	public GameObject TextBox;
+
+	void Start()
+	{
+		ThePlayer.GetComponent<FirstPersonController>().enabled = false;
+		StartCoroutine(ScenePlayer());
+	}
+
+	IEnumerator ScenePlayer()
+	{
+		yield return new WaitForSeconds(1.5f);
+		FadeScreenIn.SetActive(false);
+		TextBox.GetComponent<Text>().text = "Que paso?";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "Donde estoy?";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "Estaba en la cabaña y...";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "...";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "No recuerdo nada...";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "Yo...";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		yield return new WaitForSeconds(0.5f);
+		TextBox.GetComponent<Text>().text = "...Tengo que salir de aqui.";
+		yield return new WaitForSeconds(2);
+		TextBox.GetComponent<Text>().text = "";
+		ThePlayer.GetComponent<FirstPersonController>().enabled = true;
+
+	}
+
+}
+
+-------------------------------------------------------------------------------
+
+*Jumpscare Trigger*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityStandardAssets.Characters.FirstPerson;
+using UnityEngine.UI;
+
+public class BFirstTrigger : MonoBehaviour
+{
+
+	public GameObject ThePlayer;
+	public GameObject TextBox;
+	public GameObject TheMarker;
+
+	void OnTriggerEnter()
+	{
+		ThePlayer.GetComponent<FirstPersonController>().enabled = false;
+		StartCoroutine(ScenePlayer());
+	}
+
+	IEnumerator ScenePlayer()
+	{
+		TextBox.GetComponent<Text>().text = "...Demonios me duele la cabeza";
+		yield return new WaitForSeconds(2.5f);
+		TextBox.GetComponent<Text>().text = "";
+		TextBox.GetComponent<Text>().text = "Espera..hay algo sobre la mesa.";
+		yield return new WaitForSeconds(2.5f);
+		TextBox.GetComponent<Text>().text = "";
+		ThePlayer.GetComponent<FirstPersonController>().enabled = true;
+		TheMarker.SetActive(true);
+		GetComponent<BoxCollider>().enabled = false;
+	}
+
+}
+
+-------------------------------------------------------------------------------
+
+*Objeto volador*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MinorJump : MonoBehaviour
+{
+    public GameObject cupObject;
+    public GameObject sphereTrig;
+
+    void OnTriggerEnter(Collider other)
+    {
+        this.gameObject.GetComponent<BoxCollider>().enabled = false;
+        sphereTrig.SetActive(true);
+        StartCoroutine(DeactivateSphere());
+    }
+
+    IEnumerator DeactivateSphere()
+    {
+        yield return new WaitForSeconds(0.5f);
+        sphereTrig.SetActive(false);
+        
+    }
+
+}
+
+-------------------------------------------------------------------------------
+
+*Intro*
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
+public class IntroSequencing : MonoBehaviour
+{
+
+    public GameObject textBox;
+    public GameObject dateDisplay;
+    public GameObject placeDisplay;
+    public AudioSource line01;
+    public AudioSource line02;
+    public AudioSource line03;
+    public AudioSource line04;
+    public AudioSource line05;
+    public AudioSource thudSound;
+    public GameObject allBlack;
+    public GameObject loadText;
+
+    void Start()
+    {
+        StartCoroutine(SequenceBegin());
+    }
+
+    IEnumerator SequenceBegin()
+    {
+        yield return new WaitForSeconds(3);
+        placeDisplay.SetActive(true);
+        yield return new WaitForSeconds(1);
+        dateDisplay.SetActive(true);
+        yield return new WaitForSeconds(4);
+        placeDisplay.SetActive(false);
+        dateDisplay.SetActive(false);
+        //yield return new WaitForSeconds(0.5f);
+        textBox.GetComponent<Text>().text = "La noche del 30 de marzo de 1995 me cambio para siempre.";
+        //line01.Play();
+        yield return new WaitForSeconds(4.5f);
+        textBox.GetComponent<Text>().text = "";
+        yield return new WaitForSeconds(3);
+        textBox.GetComponent<Text>().text = "Estaba escapando de unos asuntos problemáticos y de alguna manera termine perdiéndome en el bosque.";
+        //line02.Play();
+        yield return new WaitForSeconds(6);
+        textBox.GetComponent<Text>().text = "";
+        yield return new WaitForSeconds(3);
+        textBox.GetComponent<Text>().text = "Sentía que me observaban, que me seguían.";
+        //line03.Play();
+        yield return new WaitForSeconds(3);
+        textBox.GetComponent<Text>().text = "";
+        yield return new WaitForSeconds(3);
+        textBox.GetComponent<Text>().text = "Vi una cabaña y pensé en pedir ayuda.";
+        //line04.Play();
+        yield return new WaitForSeconds(4);
+        textBox.GetComponent<Text>().text = "";
+        yield return new WaitForSeconds(3);
+        textBox.GetComponent<Text>().text = "...Escuchaba sonidos raros proviniendo de allí, pero estaba desesperado.";
+        yield return new WaitForSeconds(6);
+        textBox.GetComponent<Text>().text = "";
+        yield return new WaitForSeconds(4);
+        textBox.GetComponent<Text>().text = "Lo que no sabía es que ese solo sería el comienzo de una pesadilla.";
+        //line05.Play();
+        yield return new WaitForSeconds(6.5f);
+        textBox.GetComponent<Text>().text = "...Hola?";
+        yield return new WaitForSeconds(3);
+        allBlack.SetActive(true);
+        thudSound.Play();
+        yield return new WaitForSeconds(1);
+        loadText.SetActive(true);
+        SceneManager.LoadScene(2);
+    }
+
+
+
+
+}
